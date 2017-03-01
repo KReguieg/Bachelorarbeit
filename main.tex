@@ -1,0 +1,286 @@
+%% LLT: Turn off some annoying warnings...
+\RequirePackage{silence}
+\WarningFilter{titlesec}{Non standard sectioning command}
+\WarningFilter{scrreprt}{Usage of package}
+\WarningFilter{scrreprt}{Activating an ugly workaround}
+
+% **************************************************
+% Document Class Definition
+% **************************************************
+\documentclass[%
+	paper=A4,					% paper size --> A4 is default in Germany
+%	twoside=true,				% onesite or twoside printing
+    oneside=true,
+%	twoside=false,				% onesite or twoside printing
+	openright,					% doublepage cleaning ends up right side
+	parskip=full,				% spacing value / method for paragraphs
+	chapterprefix=true,			% prefix for chapter marks
+	12pt,						% font size
+	headings=normal,			% size of headings
+	bibliography=totoc,			% include bib in toc
+	listof=totoc,				% include listof entries in toc
+	titlepage=on,				% own page for each title page
+	captions=tableabove,		% display table captions above the float env
+	draft=false,				% value for draft version
+]{scrreprt}%
+
+\usepackage[onehalfspacing]{setspace}
+\usepackage[ngerman]{babel} % Neue Deutsche Rechtschreibung
+\usepackage[T1]{fontenc}
+\usepackage{gensymb}
+\usepackage[utf8]{inputenc}		% defines file's character encoding
+\usepackage{paralist}          % for compactitem itemization
+\usepackage{chngcntr}           % Einfache Nummerierung von Abbildungen
+\counterwithout{figure}{chapter} % Einfache Nummerierung von Abbildungen
+\usepackage{chngcntr}
+\counterwithout{footnote}{chapter}
+\usepackage{hyperref}
+\newcommand\fnurl[2]{%
+	\href{#2}{#1}\footnote{\url{#2}}%
+}
+\usepackage{graphicx}
+\graphicspath{{/figuren/}}
+\usepackage{float} % exaktes Figure Placement mit H
+%\usepackage{listings} % Code Listings
+
+%\lstset{
+%  breaklines=true,
+%%  numbers=left,
+%  numbersep=5pt,
+%  basicstyle=\footnotesize\ttfamily,
+%  numberstyle=\tiny\color{black}
+%%  literate=%
+%%  {Ö}{{\"O}}1
+%%  {Ä}{{\"A}}1
+%%  {Ü}{{\"U}}1
+%%  {ß}{{\ss}}2
+%%  {ü}{{\"u}}1
+%%  {ä}{{\"a}}1
+%%  {ö}{{\"o}}1
+%}
+%\lstset{literate=
+%  {á}{{\'a}}1 {é}{{\'e}}1 {í}{{\'i}}1 {ó}{{\'o}}1 {ú}{{\'u}}1
+%  {Á}{{\'A}}1 {É}{{\'E}}1 {Í}{{\'I}}1 {Ó}{{\'O}}1 {Ú}{{\'U}}1
+%  {à}{{\`a}}1 {è}{{\`e}}1 {ì}{{\`i}}1 {ò}{{\`o}}1 {ù}{{\`u}}1
+%  {À}{{\`A}}1 {È}{{\'E}}1 {Ì}{{\`I}}1 {Ò}{{\`O}}1 {Ù}{{\`U}}1
+%  {ä}{{\"a}}1 {ë}{{\"e}}1 {ï}{{\"i}}1 {ö}{{\"o}}1 {ü}{{\"u}}1
+%  {Ä}{{\"A}}1 {Ë}{{\"E}}1 {Ï}{{\"I}}1 {Ö}{{\"O}}1 {Ü}{{\"U}}1
+%  {â}{{\^a}}1 {ê}{{\^e}}1 {î}{{\^i}}1 {ô}{{\^o}}1 {û}{{\^u}}1
+%  {Â}{{\^A}}1 {Ê}{{\^E}}1 {Î}{{\^I}}1 {Ô}{{\^O}}1 {Û}{{\^U}}1
+%  {œ}{{\oe}}1 {Œ}{{\OE}}1 {æ}{{\ae}}1 {Æ}{{\AE}}1 {ß}{{\ss}}1
+%  {ű}{{\H{u}}}1 {Ű}{{\H{U}}}1 {ő}{{\H{o}}}1 {Ő}{{\H{O}}}1
+%  {ç}{{\c c}}1 {Ç}{{\c C}}1 {ø}{{\o}}1 {å}{{\r a}}1 {Å}{{\r A}}1
+%  {€}{{\EUR}}1 {£}{{\pounds}}1
+%}
+%\usepackage{color}
+%\definecolor{javared}{rgb}{0.6,0,0} % for strings
+%\definecolor{javagreen}{rgb}{0.25,0.5,0.35} % comments
+%\definecolor{javapurple}{rgb}{0.5,0,0.35} % keywords
+%\definecolor{javadocblue}{rgb}{0.25,0.35,0.75} % javadoc
+
+
+\usepackage{color}
+\usepackage{listings}
+%\usepackage{courier} %caused problems for me
+
+\lstloadlanguages{% Check Dokumentation for further languages ...
+	C,
+	C++,
+	csh,
+	Java
+}
+
+\definecolor{red}{rgb}{0.6,0,0} % for strings
+\definecolor{blue}{rgb}{0,0,0.6}
+\definecolor{green}{rgb}{0.3,0.5,0.29}
+\definecolor{cyan}{rgb}{0.0,0.6,0.6}
+
+\lstset{
+	language=csh,
+	basicstyle=\footnotesize\ttfamily, 
+	numbers=left, 
+	numberstyle=\tiny, 
+	numbersep=5pt, 
+	tabsize=2, 
+	extendedchars=true, 
+	breaklines=true, 
+	frame=b,
+	stringstyle=\color{blue}\ttfamily, 
+	showspaces=false, 
+	showtabs=false, 
+	xleftmargin=17pt,
+	framexleftmargin=17pt,
+	framexrightmargin=5pt,
+	framexbottommargin=4pt,
+	commentstyle=\color{green},
+	morecomment=[l]{//}, %use comment-line-style!
+	morecomment=[s]{/*}{*/}, %for multiline comments
+	showstringspaces=false, 
+	morekeywords={  abstract, event, new, struct,
+		as, explicit, null, switch,
+		base, extern, object, this,
+		bool, false, operator, throw,
+		break, finally, out, true,
+		byte, fixed, override, try,
+		case, float, params, typeof,
+		catch, for, private, uint,
+		char, foreach, protected, ulong,
+		checked, goto, public, unchecked,
+		class, if, readonly, unsafe,
+		const, implicit, ref, ushort,
+		continue, in, return, using,
+		decimal, int, sbyte, virtual,
+		default, interface, sealed, volatile,
+		delegate, internal, short, void,
+		do, is, sizeof, while,
+		double, lock, stackalloc,
+		else, long, static,
+		enum, namespace, string},
+	keywordstyle=\color{cyan},
+	identifierstyle=\color{black},
+}
+\usepackage{caption}
+\DeclareCaptionFont{white}{\color{white}}
+\DeclareCaptionFormat{listing}{\colorbox{blue}{\parbox{\textwidth}{\hspace{15pt}#1#2#3}}} %changed \colorbox{8} to \colorbox{blue} cause 8 is not a color!
+\captionsetup[lstlisting]{format=listing,labelfont=white,textfont=white, singlelinecheck=false, margin=0pt, font={bf,footnotesize}}
+
+
+
+% **************************************************
+% Debug LaTeX Information
+% **************************************************
+%\listfiles
+
+% **************************************************
+% Information and Commands for Reuse
+% **************************************************
+\newcommand{\thesisTitle}{Bachelorarbeit}
+\newcommand{\thesisName}{Ibrahim Khaled Reguieg}
+\newcommand{\thesisSubject}{Konzeption und prototypische Implementierung von innovativen Interaktionsmöglichkeiten mit Industriemaschinen in der virtuellen Realität im Kontext von Industrie 4.0}
+\newcommand{\thesisDate}{\today}
+%\newcommand{\thesisVersion}{Final}
+
+\newcommand{\thesisFirstReviewer}{Prof. Dr. Kristian Hildebrand}
+\newcommand{\thesisFirstReviewerUniversity}{\protect{Beuth Hochschule für Technik Berlin}}
+\newcommand{\thesisFirstReviewerDepartment}{Fachbereich VI - Informatik und Medien}
+
+\newcommand{\thesisSecondReviewer}{Prof. Dr. Felix Gers}
+\newcommand{\thesisSecondReviewerUniversity}{\protect{Beuth Hochschule für Technik Berlin}}
+\newcommand{\thesisSecondReviewerDepartment}{Fachbereich VI - Informatik und Medien}
+
+%\newcommand{\thesisFirstSupervisor}{Jane Doe}
+%\newcommand{\thesisSecondSupervisor}{John Smith}
+
+%\newcommand{\thesisUniversity}{\protect{Praktikum beim Deutschen Forschungszentrum für Künstliche Intelligenz}}
+%\newcommand{\thesisUniversityDepartment}{Forschungsgruppe Sprachtechnologien (DFKI-LT)}
+%\newcommand{\thesisUniversityInstitute}{Projekt ``Smart Data for Mobility'' (SD4M)}
+%\newcommand{\thesisUniversityGroup}{Clean Thesis Group (CTG)}
+\newcommand{\thesisUniversityCity}{Berlin}
+%\newcommand{\thesisUniversityStreetAddress}{Street address}
+%\newcommand{\thesisUniversityPostalCode}{Postal Code}
+
+% **************************************************
+% Load and Configure Packages
+% **************************************************
+
+\usepackage[ngerman]{babel} % babel system, adjust the language of the content
+
+\usepackage[					% clean thesis style
+%	bibencoding=utf8,%
+	figuresep=colon,%
+	sansserif=false,%
+	hangfigurecaption=false,%
+	hangsection=true,%
+	hangsubsection=true,%
+	colorize=full,%
+	colortheme=bluemagenta,%
+% LLT: Use biber if using UTF8 encoding
+%	bibsys=bibtex,%
+	bibsys=biber,%
+	bibfile=bib-refs,%
+	bibstyle=alphabetic,%
+]{cleanthesis}
+
+\hypersetup{					% setup the hyperref-package options
+	pdftitle={\thesisTitle},	% 	- title (PDF meta)
+	pdfsubject={\thesisSubject},% 	- subject (PDF meta)
+	pdfauthor={\thesisName},	% 	- author (PDF meta)
+	plainpages=false,			% 	-
+	colorlinks=false,			% 	- colorize links?
+	pdfborder={0 0 0},			% 	-
+	breaklinks=true,			% 	- allow line break inside links
+	bookmarksnumbered=true,		%
+	bookmarksopen=true			%
+}
+
+% **************************************************
+% Document CONTENT
+% **************************************************
+\begin{document}
+
+% --------------------------
+% rename document parts
+% --------------------------
+\renewcaptionname{ngerman}{\figurename}{Abb.}
+\renewcaptionname{ngerman}{\tablename}{Tab.}
+%\renewcaptionname{english}{\figurename}{Fig.}
+%\renewcaptionname{english}{\tablename}{Tab.}
+
+% --------------------------
+% Front matter
+% --------------------------
+\pagenumbering{roman}			% roman page numbing (invisible for empty page style)
+\pagestyle{empty}				% no header or footers
+\input{content/titlepages}		% INCLUDE: all titlepages
+\cleardoublepage
+
+\setcounter{tocdepth}{4}		% define depth of toc
+\tableofcontents				% display table of contents
+\cleardoublepage
+
+\listoffigures
+\cleardoublepage
+\listoftables
+\cleardoublepage
+
+% --------------------------
+% Body matter
+% --------------------------
+\pagenumbering{arabic}			% arabic page numbering
+\setcounter{page}{1}			% set page counter
+\pagestyle{maincontentstyle} 	% fancy header and footer
+
+\input{content/chapter1_einleitung}
+\input{content/chapter2_grundlagen}
+\input{content/chapter3_konzeption}
+\input{content/chapter4_prototypische_implementierung}
+\input{content/chapter5_auswertung}
+\input{content/chapter6_fazit}
+\input{content/chapter8_anlagen}
+	\nocite{*}
+\cleardoublepage
+
+% --------------------------
+% Back matter
+% --------------------------
+%\bibliographystyle{plain}%Used BibTeX style is unsrt
+%\bibliography{bib-refs}
+{%
+	\setstretch{1.1}
+	\renewcommand{\bibfont}{\normalfont\small}
+	\setlength{\biblabelsep}{0pt}
+	\setlength{\bibitemsep}{0.5\baselineskip plus 0.5\baselineskip}
+	\printbibliography[nottype=online]
+	\printbibliography[heading=subbibliography,title={Online-Quellen},type=online,prefixnumbers={@}]
+}
+\cleardoublepage
+
+\input{content/declaration}
+%\clearpage
+%\newpage
+\mbox{}
+
+% **************************************************
+% End of Document CONTENT
+% **************************************************
+\end{document}

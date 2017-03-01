@@ -1,0 +1,397 @@
+\appendix
+\chapter{Anlagen}
+
+\section{GazeManager.cs}
+\begin{lstlisting}[caption=GazeManager.cs, label=code:GazeManager]
+using UnityEngine;
+
+public class GazeManager : Singleton<GazeManager> {
+
+  /// Declaration of variables, setters and getters.
+  [...]
+
+  private void Update() {
+	gazeOrigin = Camera.main.transform.position;
+	gazeDirection = Camera.main.transform.forward;
+	gazeStabilizer.UpdateHeadStability(gazeOrigin, Camera.main.transform.rotation);
+	gazeOrigin = gazeStabilizer.StableHeadPosition;
+	UpdateRaycast();
+  }
+
+  /// <summary>
+  /// Calculates the Raycast hit position and normal.
+  /// </summary>         
+  private void UpdateRaycast() {
+	RaycastHit hitInfo;
+	Hit = Physics.Raycast(gazeOrigin, gazeDirection, out hitInfo, MaxGazeDistance, RaycastLayerMask);
+	HitInfo = hitInfo;
+	if (Hit) { // If raycast hit a hologram...
+	  Position = hitInfo.point;
+	  Normal = hitInfo.normal;
+	}
+	[...]
+  }
+}
+\end{lstlisting}
+
+\section{CursorManager.cs}
+\begin{lstlisting}[caption=CursorManager.cs, label=code:CursorManager]
+using UnityEngine;
+
+/// <summary>
+/// CursorManager class takes Cursor GameObjects.
+/// One that is on Holograms and another off Holograms.
+/// Shows the appropriate Cursor when a Hologram is hit.
+/// Places the appropriate Cursor at the hit position.
+/// Matches the Cursor normal to the hit surface.
+/// </summary>
+public class CursorManager : Singleton<CursorManager> {
+
+  [Tooltip("Drag the Cursor object to show when it hits a hologram.")]
+  public GameObject CursorOnHolograms;
+	
+  [Tooltip("Drag the Cursor object to show when it does not hit a hologram.")]
+  public GameObject CursorOffHolograms;
+	
+  void Awake() {
+	if (CursorOnHolograms == null || CursorOffHolograms == null) {
+	  return;
+	}
+	
+	// Hide the Cursors to begin with.
+	CursorOnHolograms.SetActive(false);
+	CursorOffHolograms.SetActive(false);
+  }
+	
+  void Update() {
+	if (GazeManager.Instance == null || CursorOnHolograms == null || CursorOffHolograms == null) {
+	  return;
+	}
+	
+	if (GazeManager.Instance.Hit) {
+ 	  CursorOnHolograms.SetActive(true);
+ 	  CursorOffHolograms.SetActive(false);
+	} else {
+	  CursorOffHolograms.SetActive(true);
+	  CursorOnHolograms.SetActive(false);
+	}
+	
+	gameObject.transform.position = GazeManager.Instance.Position;	
+	gameObject.transform.up = GazeManager.Instance.Normal;
+  }
+}
+\end{lstlisting}
+
+\section{InteractibleManager.cs}
+\begin{lstlisting}[caption=InteractibleManager.cs, label=code:InteractibleManager]
+using UnityEngine;
+
+/// <summary>
+/// InteractibleManager keeps tracks of which GameObject
+/// is currently in focus.
+/// </summary>
+public class InteractibleManager : Singleton<InteractibleManager> {
+
+  public GameObject FocusedGameObject { get; private set; }
+  private GameObject oldFocusedGameObject = null;
+
+  void Start() {
+	FocusedGameObject = null;
+  }
+
+  void Update() {
+	oldFocusedGameObject = FocusedGameObject;
+
+	if (GazeManager.Instance.Hit) {
+	  RaycastHit hitInfo = GazeManager.Instance.HitInfo;
+	  if (hitInfo.collider != null) {
+		///Assign the hitInfo's collider gameObject to the FocusedGameObject.
+		FocusedGameObject = hitInfo.collider.gameObject;
+	  } else {
+		FocusedGameObject = null;
+	  }
+	} else {
+		FocusedGameObject = null;
+	}
+
+	if (FocusedGameObject != oldFocusedGameObject) {
+	  ResetFocusedInteractible();
+
+	  if (FocusedGameObject != null) {
+		if (FocusedGameObject.GetComponent<Interactible>() != null) {
+		  // Send a GazeEntered message to the FocusedGameObject.
+		  FocusedGameObject.SendMessage("GazeEntered");
+		}
+	  }
+	}
+  }
+
+  private void ResetFocusedInteractible() {
+	if (oldFocusedGameObject != null) {
+	  if (oldFocusedGameObject.GetComponent<Interactible>() != null) {
+	  	///Send a GazeExited message to the oldFocusedGameObject.
+		oldFocusedGameObject.SendMessage("GazeExited");
+  	  }
+  	}
+  }
+}
+\end{lstlisting}
+\section{GestureAction.cs}
+\begin{lstlisting}[caption=GestureAction.cs, label=code:GestureAction]
+using System;
+using UnityEngine;
+using MonoBrick.EV3;
+/// <summary>
+/// GestureAction performs custom actions based on
+/// which gesture is being performed.
+/// </summary>
+public class GestureAction : MonoBehaviour {
+  [Tooltip("Translation max speed controls amount of translation.")]        
+  public float TranslationSensitivity = 10.0f;  
+    
+  private Vector3 manipulationPreviousPosition;        
+  private float translationFactor;     
+  private EV3Manager ev3;     
+  PositionManager positionManager;     
+ 
+  void Start() {         
+	ev3 = GameObject.Find("Managers").GetComponent<EV3Manager>();        
+	Debug.Log(ev3 + "loaded!\nGetting in ready position...");
+	ev3.Beep();         
+	ev3.MotorBlocked = false;         
+	ev3.MoveRobotArmToStartingPosition();         
+	positionManager = GetComponent<PositionManager>();     
+  }     
+  
+  void Update(){      
+    PerformTranslation();         
+    PerformGrab();     
+  }     
+  
+  private void PerformTranslation() {         
+    if (GestureManager.Instance.IsNavigating && HandsManager.Instance.FocusedGameObject == gameObject) {             
+      // Calculate translationFactor based on GestureManager's NavigationPosition.X and multiply by TranslationSensitivity.             
+      // This will help control the amount of translation.             translationFactor = GestureManager.Instance.NavigationPosition.x;          
+    
+      float clampTranslation = Mathf.Clamp(translationFactor, -1f, 1f);      
+      positionManager.SetPosition(clampTranslation / 2 + 0.5f);
+      ev3.MoveRobot((sbyte)(clampTranslation * 10));         
+    } else {             
+	  positionManager.SetPosition(0.5f);             
+	  ev3.StopRobot();         
+	}     
+  }     
+  
+  private void PerformGrab() {         
+	if (GestureManager.Instance.IsNavigating && HandsManager.Instance.FocusedGameObject == gameObject) {             
+	  // Calculate translationFactor based on GestureManager's NavigationPosition.X and multiply by TranslationSensitivity.             
+	  // This will help control the amount of translation.             translationFactor = GestureManager.Instance.NavigationPosition.z;         
+	  transform.Translate(new Vector3(0, 0, translationFactor / TranslationSensitivity));             
+	  transform.position = new Vector3(transform.position.x, transform.position.y, Mathf.Clamp(transform.position.z , - 1f, 1f));
+	}
+  }
+}
+\end{lstlisting}
+\section{VoiceManager.cs}
+\begin{lstlisting}[caption=VoiceManager.cs, label=code:VoiceManager]
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+using UnityEngine.Windows.Speech;
+using System.Linq;
+using System;
+
+public class VoiceManager : MonoBehaviour {
+  KeywordRecognizer keywordRecognizer;
+  Dictionary<string, System.Action> keywords = new Dictionary<string, System.Action>();
+  private EV3Manager ev3;
+  
+  // Use this for initialization
+  void Start () {         
+	ev3 = GetComponent<EV3Manager>();         
+	keywords.Add("Grab", () => {             
+	  ev3.GrabObject();         
+	});         
+	
+	keywords.Add("Place", () => {             
+	  ev3.PlaceObject();         
+	});         
+	
+	keywords.Add("Stop", () => {             
+	  ev3.Stop();         
+	});
+	
+	keywordRecognizer = new KeywordRecognizer(keywords.Keys.ToArray());         keywordRecognizer.OnPhraseRecognized += KeywordRecognizer_OnPhraseRecognized;         keywordRecognizer.Start();
+  }     
+  
+  private void KeywordRecognizer_OnPhraseRecognized(PhraseRecognizedEventArgs args) {
+	Debug.Log("Keyword Recognized..."); 
+	System.Action keywordAction; 
+	if (keywords.TryGetValue(args.text, out keywordAction)) { 
+	  keywordAction.Invoke(); 
+	}
+  }
+  
+  // Update is called once per frame
+  void Update () {
+  
+  } 
+}
+\end{lstlisting}
+\section{EV3Manager.cs}
+\begin{lstlisting}[caption=EV3Manager.cs, label=code:EV3Manager]
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine; using MonoBrick.EV3;
+using System; using System.Threading;
+
+public class EV3Manager : MonoBehaviour {
+  public Brick<TouchSensor, Sensor, Sensor, Sensor> ev3;     
+  private bool motorBlocked;   
+    
+  public bool MotorBlocked {         
+	get { return motorBlocked; }
+	set { motorBlocked = value;}
+  }
+  
+  // Use this for initialization
+  void Start () {         
+	ev3 = new Brick<TouchSensor, Sensor, Sensor, Sensor>("WiFi");         
+	ev3.Connection.Open();
+	ev3.Sensor1.Mode = TouchMode.Boolean;         
+	ev3.MotorA.ResetTacho();         
+	ev3.MotorB.ResetTacho();         
+	ev3.MotorC.ResetTacho();         
+	MotorBlocked = false;
+  }
+  
+  // Update is called once per frame
+  void Update () { 
+    Debug.Log(ev3.Sensor1.Read());         
+    Debug.Log("Motor Blocked?= " + motorBlocked);         
+    Debug.Log("TACHO B= " + ev3.MotorB.GetTachoCount());         
+    Debug.Log("TACHO C= " + ev3.MotorC.GetTachoCount()); 
+            
+    if (ev3.Sensor1.Read() == 1 && MotorBlocked == true) { 
+	  ev3.MotorB.Brake();             
+	  MotorBlocked = false;
+	}
+  }     
+  
+  public void MoveRobot(sbyte speed) {
+	ev3.MotorA.On(speed);     
+  }     
+  
+  public void StopRobot() {         
+	ev3.MotorA.Off();     
+  }     
+  
+  public void MoveRobotArmToStartingPosition() {
+	ev3.MotorB.On(-25);         
+	MotorBlocked = true;     
+  }     
+  
+  public void Beep() { 
+	ev3.Beep(10, 500);     
+  }    
+  
+  public void GrabObject() { 
+	WaitForMotorToStop();         
+	ev3.MotorB.Off();         
+	WaitForMotorToStop();         
+	ev3.MotorC.MoveTo(10, 80, true);         
+	WaitForMotorToStop();         
+	ev3.MotorB.On(-25);         
+	MotorBlocked = true;     
+  }
+  
+  internal void PlaceObject() { 
+	MotorBlocked = false;         
+	ev3.MotorB.Off();         
+	WaitForMotorToStop();         
+	ev3.MotorC.MoveTo(25, 0, true);         
+	WaitForMotorToStop();         
+	ev3.MotorB.On(-25);         
+	MotorBlocked = true;     
+  }     
+  
+  void OnDestroy() {
+	ev3.MotorA.Off();         
+	ev3.MotorB.Off();         
+	ev3.MotorC.Off();     
+  }     
+  
+  void WaitForMotorToStop() {         
+	Thread.Sleep(500);         
+	while (ev3.MotorA.IsRunning() || ev3.MotorB.IsRunning() || ev3.MotorC.IsRunning())             
+	  Thread.Sleep(500);     
+  }
+  
+  public int GetSpeed() {         
+  	return ev3.MotorA.GetSpeed();
+  }
+\end{lstlisting}
+\section{Usability Test Transskript}\label{transscrikpt}
+\paragraph*{Tester1, männlich, keine Vorkenntnisse, Officemanagement}
+\begin{itemize}
+	\item deutlicher machen wie man Roboter bewegt
+\end{itemize}
+\paragraph*{Tester2, weiblich, keine Vorkenntnisse, Officemanagement}
+\begin{itemize}
+	\item Nicht Muttersprachler
+	\item Hart die Ready-Gesture zu verstehen.
+	\item Augen/Kopf-Hand-Koordination schnellere Ausführung der Gesten nötig Frustration, weil die Gesten nicht Funktionieren.
+	\item Konnte \frqq Grab\flqq\-Aktion nicht ausführen
+\item Fehlfunktion schwierig/Motorblockade behindert
+\end{itemize}
+\paragraph*{Tester3, männlich, keine Vorkenntnisse, Gestaltung}
+\begin{itemize}
+	\item Hat versucht Cursor mit Auge oder Finger zu lenken
+	\item Aussage: \frqq Funktioniert erstaunlich gut.\flqq
+	\item Gaze schwierig
+	\item Wenig Latenz!
+	\item Aussage: \frqq Wie Magie!\flqq
+\end{itemize}
+\paragraph*{Tester4, weiblich, keine Vorkenntnisse, Gestaltung}
+\begin{itemize}
+	\item Icon-Feedback fürs Tippen gewünscht
+	\item Frustum für Handdetection anzeigen
+	\item Cyan blau gut
+	\item Reagiert schnell
+	\item Nur die wichtigsten Dinge auf Interface
+\end{itemize}
+\paragraph*{Tester5, männlich, keine Vorkenntnisse, Projektmanagement}
+\begin{itemize}
+	\item Anwendung hat direkt funktioniert
+	\item Es hat Spaß gemacht.
+	\item Erstaunlich das Roboter sich bewegt hat.
+	\item Hat Sprachbefehl zweimal sprechen müssen
+	\item Nicht intuitivste Steuerung
+	\item Absolute Werte Positionswerte
+\end{itemize}
+\paragraph*{Tester6, weiblich, keine Vorkenntnisse, Projektmanagement}
+\begin{itemize}
+	\item Das Holointerface ist ansprechend
+	\item Gut, dass die Befehle nochmals  angezeigt werden
+	\item Es hat Spaß gemacht.
+	\item Leider Stimme nicht sehr gut erkannt
+\end{itemize}
+\paragraph*{Tester7, weiblich, keine Vorkenntnisse, Entwicklung}
+\begin{itemize}
+	\item Motorblockade nervt
+	\item \frqq Tap and Hold\flqq\ zunächst nicht verstanden
+	\item Wenn Gesten verstanden dann ist die Bedienung total leicht. Das gefällt
+	\item Microsoft Gesten an für sich schwierig und ungewohnt
+	\item Aufgabe in Interface Schritt für Schritt anzeigen
+	\item Gut, dass die Befehle nochmals  angezeigt werden
+\end{itemize}
+\paragraph*{Tester8, männlich, keine Vorkenntnisse, Entwicklung}
+\begin{itemize}
+	\item Interaktionsobjekt auf Höhe des Holointerface
+	\item Einfaches, gut verständliches Interface
+	\item Alles wichtige in einem Blick!
+	\item Der Aufgabe angemessen
+	\item Kontrollelement zu tief, dadurch Unsicherheit beim Bedienen
+	\item Aufgabe in Interface Schritt für Schritt anzeigen
+	\item Gut, dass die Befehle nochmals  angezeigt werden
+\end{itemize}
